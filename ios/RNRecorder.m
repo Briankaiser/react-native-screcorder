@@ -1,8 +1,8 @@
-#import "RCTBridge.h"
+#import <React/RCTBridge.h>
 #import "RNRecorder.h"
 #import "RNRecorderManager.h"
-#import "RCTLog.h"
-#import "RCTUtils.h"
+#import <React/RCTLog.h>
+#import <React/RCTUtils.h>
 
 #import <AVFoundation/AVFoundation.h>
 
@@ -72,6 +72,7 @@
    // Video config
    _recorder.videoConfiguration.enabled = [RCTConvert BOOL:[video objectForKey:@"enabled"]];
    _recorder.videoConfiguration.bitrate = [RCTConvert int:[video objectForKey:@"bitrate"]];
+   _recorder.videoConfiguration.maxFrameRate = [RCTConvert int:[video objectForKey:@"maxFrameRate"]];
    _recorder.videoConfiguration.timeScale = [RCTConvert float:[video objectForKey:@"timescale"]];
    if([video objectForKey:@"size"] != nil)
    {
@@ -81,6 +82,10 @@
    [self setVideoFormat:_videoFormat];
    _videoQuality = [RCTConvert NSString:[video objectForKey:@"quality"]];
    _videoFilters = [RCTConvert NSArray:[video objectForKey:@"filters"]];
+
+   NSString* watermarkImagePath = [RCTConvert NSString:[video objectForKey:@"watermarkImage"]];
+   _recorder.videoConfiguration.watermarkImage = [UIImage imageNamed: watermarkImagePath];
+   _recorder.videoConfiguration.watermarkFrame = CGRectMake(0, 0, _recorder.videoConfiguration.size.width, _recorder.videoConfiguration.size.height);
    
    // Audio config
    _recorder.audioConfiguration.enabled = [RCTConvert BOOL:[audio objectForKey:@"enabled"]];
@@ -244,11 +249,19 @@
    SCAssetExportSession *assetExportSession = [[SCAssetExportSession alloc] initWithAsset:asset];
    assetExportSession.outputFileType = _videoFormat;
    assetExportSession.outputUrl = [_session outputUrl];
+   
    assetExportSession.videoConfiguration.preset = _videoQuality;
+   assetExportSession.videoConfiguration.maxFrameRate = _recorder.videoConfiguration.maxFrameRate;
+   assetExportSession.videoConfiguration.bitrate = _recorder.videoConfiguration.bitrate;
+   
    assetExportSession.audioConfiguration.preset = _audioQuality;
+   assetExportSession.audioConfiguration.bitrate = _recorder.audioConfiguration.bitrate;
+   assetExportSession.audioConfiguration.channelsCount = _recorder.audioConfiguration.channelsCount;
    
    // Apply filters
    assetExportSession.videoConfiguration.filter = [self createFilter];
+   assetExportSession.videoConfiguration.watermarkFrame = _recorder.videoConfiguration.watermarkFrame;
+   assetExportSession.videoConfiguration.watermarkImage = _recorder.videoConfiguration.watermarkImage;
 
    [assetExportSession exportAsynchronouslyWithCompletionHandler: ^{
       callback(assetExportSession.error, assetExportSession.outputUrl);
@@ -283,16 +296,20 @@
    
    if (_previewView == nil) {
       _previewView = [[UIView alloc] initWithFrame:self.bounds];
+      _previewView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
       _recorder.previewView = _previewView;
       [_previewView setBackgroundColor:[UIColor blackColor]];
       [self insertSubview:_previewView atIndex:0];
+#if !(TARGET_IPHONE_SIMULATOR)
       [_recorder startRunning];
-   
+#endif
+
       _session = [SCRecordSession recordSession];
       [self setVideoFormat:_videoFormat];
       _recorder.session = _session;
    }
-   
+   [_recorder previewViewFrameChanged];
+
    return;
 }
 

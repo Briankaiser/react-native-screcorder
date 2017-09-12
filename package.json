@@ -1,6 +1,6 @@
 {
   "name": "react-native-screcorder",
-  "version": "0.1.4",
+  "version": "v0.1.1-ct.1",
   "description": "A Video recorder component for react-native",
   "main": "recorder.ios.js",
   "keywords": [
@@ -21,5 +21,8 @@
     "email": "maxime.mezrahi@gmail.com",
     "url": "https://github.com/maxs15"
   },
-  "dependencies": {}
+  "devDependencies": {
+    "react": "15.4.2",
+    "react-native": "0.42.2"
+  }
 }
